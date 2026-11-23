@@ -29,7 +29,7 @@ Full role details: [`docs/team_roles_detailed.md`](docs/team_roles_detailed.md)
 ```bash
 # 1. Clone and enter
 git clone <repo-url>
-cd robot-pick-place-ml
+cd MachineLearningICPBL
 
 # 2. Create environment and install
 python -m venv .venv
@@ -73,7 +73,7 @@ Output: `results/demo_results.csv`
 ## Repository structure
 
 ```
-robot-pick-place-ml/
+MachineLearningICPBL/
 ├── data/                  # NOT committed (see data/README.md)
 │   ├── raw/               #   success/ and fail/ training episodes
 │   └── holdout/           #   8 episodes set aside for the practice demo, never train on these
