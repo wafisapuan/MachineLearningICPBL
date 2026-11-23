@@ -1,0 +1,27 @@
+# Data: never commit (belongs to the course / industry partner)
+data/**
+!data/README.md
+!data/raw/.gitkeep
+!data/holdout/.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Large or temporary outputs
+results/demo_results.csv
+*.log
