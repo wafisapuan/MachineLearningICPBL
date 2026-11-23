@@ -28,7 +28,7 @@ Full role details: [`docs/team_roles_detailed.md`](docs/team_roles_detailed.md)
 
 ```bash
 # 1. Clone and enter
-git clone <repo-url>
+git clone https://github.com/wafisapuan/MachineLearningICPBL
 cd MachineLearningICPBL
 
 # 2. Create environment and install
