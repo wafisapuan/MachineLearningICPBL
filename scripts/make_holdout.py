@@ -2,6 +2,9 @@
 
 Everyone runs this once on their own laptop, after putting all 48 episodes in data/raw.
 
+If you copy the dataset into data/raw again later, just run it again: any test episode
+that is back in data/raw is removed there, so it can't leak into training.
+
 The test set is fixed by docs/holdout_ids.txt (committed), so every member gets exactly
 the same 8 episodes. Only if that file does not exist does the script pick them
 (stratified, fixed seed) and create it.
@@ -23,7 +26,7 @@ PER_CLASS = 4
 def read_list():
     """Committed list -> ['success/episode_000014.csv', ...]."""
     return [line.strip().replace("\\", "/") for line in HOLDOUT_IDS.read_text().splitlines()
-            if line.strip() and not line.startswith("#")]
+            if line.strip() and not line.strip().startswith("#")]
 
 
 def pick_new():
@@ -42,10 +45,16 @@ def pick_new():
 
 def main():
     chosen = read_list() if HOLDOUT_IDS.exists() else pick_new()
-    moved, already = 0, 0
+    moved, already, removed = 0, 0, 0
     for rel in chosen:
         src, dst = DATA_RAW / rel, DATA_HOLDOUT / rel
         if dst.exists():
+            if src.exists():
+                # Duplicate copy in raw/ (e.g. the dataset was copied in again):
+                # remove it so the test episode can't leak into training.
+                src.unlink()
+                removed += 1
+                print(f"Removed duplicate test episode from raw/: {rel}")
             already += 1
             continue
         if not src.exists():
@@ -53,7 +62,8 @@ def main():
         dst.parent.mkdir(parents=True, exist_ok=True)
         shutil.move(str(src), dst)
         moved += 1
-    print(f"Test set ({len(chosen)} episodes): {moved} moved to {DATA_HOLDOUT}, {already} already there.")
+    print(f"Test set ({len(chosen)} episodes): {moved} moved to {DATA_HOLDOUT}, "
+          f"{already} already there, {removed} duplicates removed from {DATA_RAW}.")
     print("  " + "\n  ".join(chosen))
 
 
