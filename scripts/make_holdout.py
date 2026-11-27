@@ -1,7 +1,10 @@
-"""Move 8 episodes (4 success + 4 fail) from data/raw to data/holdout. Run ONCE.
+"""Move the 8 test-set episodes (4 success + 4 fail) from data/raw to data/holdout.
 
-The split is deterministic (fixed seed), so every member gets the same hold-out set.
-The chosen ids are saved to docs/holdout_ids.txt (committed) for reference.
+Everyone runs this once on their own laptop, after putting all 48 episodes in data/raw.
+
+The test set is fixed by docs/holdout_ids.txt (committed), so every member gets exactly
+the same 8 episodes. Only if that file does not exist does the script pick them
+(stratified, fixed seed) and create it.
 
     python scripts/make_holdout.py
 """
@@ -17,24 +20,41 @@ from src.config import DATA_HOLDOUT, DATA_RAW, HOLDOUT_IDS, RANDOM_STATE  # noqa
 PER_CLASS = 4
 
 
-def main():
-    if any(DATA_HOLDOUT.glob("*/*.csv")):
-        print(f"Hold-out already exists in {DATA_HOLDOUT}; nothing to do.")
-        return
+def read_list():
+    """Committed list -> ['success/episode_000014.csv', ...]."""
+    return [line.strip().replace("\\", "/") for line in HOLDOUT_IDS.read_text().splitlines()
+            if line.strip() and not line.startswith("#")]
+
+
+def pick_new():
+    """Only used if docs/holdout_ids.txt does not exist yet."""
     rng = np.random.default_rng(RANDOM_STATE)
     chosen = []
     for label in ["success", "fail"]:
         files = sorted((DATA_RAW / label).glob("*.csv"))
         if len(files) < PER_CLASS:
             sys.exit(f"Not enough files in {DATA_RAW / label}. Did you put the dataset in data/raw/?")
-        pick = rng.choice(len(files), PER_CLASS, replace=False)
-        (DATA_HOLDOUT / label).mkdir(parents=True, exist_ok=True)
-        for i in sorted(pick):
-            shutil.move(str(files[i]), DATA_HOLDOUT / label / files[i].name)
-            chosen.append(f"{label}/{files[i].name}")
+        chosen += [f"{label}/{files[i].name}" for i in sorted(rng.choice(len(files), PER_CLASS, replace=False))]
     HOLDOUT_IDS.write_text("\n".join(chosen) + "\n")
-    print("Hold-out episodes:\n  " + "\n  ".join(chosen))
-    print(f"Saved list to {HOLDOUT_IDS}")
+    print(f"Created {HOLDOUT_IDS}")
+    return chosen
+
+
+def main():
+    chosen = read_list() if HOLDOUT_IDS.exists() else pick_new()
+    moved, already = 0, 0
+    for rel in chosen:
+        src, dst = DATA_RAW / rel, DATA_HOLDOUT / rel
+        if dst.exists():
+            already += 1
+            continue
+        if not src.exists():
+            sys.exit(f"Missing {src}. Put all 48 episodes in data/raw/ first.")
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.move(str(src), dst)
+        moved += 1
+    print(f"Test set ({len(chosen)} episodes): {moved} moved to {DATA_HOLDOUT}, {already} already there.")
+    print("  " + "\n  ".join(chosen))
 
 
 if __name__ == "__main__":

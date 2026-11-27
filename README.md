@@ -24,6 +24,12 @@ Full role details: [`docs/team_roles_detailed.md`](docs/team_roles_detailed.md)
 
 ---
 
+### Data split used everywhere
+- **Test set (hold-out):** 8 episodes in `docs/holdout_ids.txt` (4 success, 4 fail). Never used for training, feature design or tuning. Used once for the practice demo (Dec 12).
+- **Training + validation:** the other 40 episodes, evaluated with **repeated stratified 5-fold cross-validation**.
+
+---
+
 ## Quick start
 
 ```bash
@@ -33,19 +39,21 @@ cd MachineLearningICPBL
 
 # 2. Create environment and install
 python -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
+source .venv/bin/activate          # Windows PowerShell: .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 
-# 3. Put the dataset in data/raw/  (see data/README.md)
-#    data/raw/success/*.csv  and  data/raw/fail/*.csv
+# 3. Put ALL 48 episode CSVs in data/raw/  (see data/README.md)
+#    data/raw/success/*.csv  (27)  and  data/raw/fail/*.csv  (21)
 
-# 4. Set aside the hold-out set (run ONCE, by Akif)
+# 4. Set aside the test set: EVERYONE runs this once on their own laptop.
+#    It moves the 8 episodes listed in docs/holdout_ids.txt into data/holdout/.
 python scripts/make_holdout.py
 
 # 5. Explore
 python scripts/explore.py --data data/raw
 
 # 6. Build features -> train models -> test the demo on the hold-out set
+#    (results/features.csv is already committed; rebuild it only if you changed src/features.py)
 python scripts/build_features.py
 python scripts/train_models.py
 python demo.py --data data/holdout
