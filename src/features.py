@@ -18,19 +18,27 @@ from src.phases import detect_phases
 # ---------- helpers ----------
 def arm_speed(df: pd.DataFrame) -> np.ndarray:
     """Summed absolute joint velocity of the left arm, per frame (rad/s)."""
+    if len(df) < 2:
+        return np.array([])
+
     arm = df[state(ARM_JOINTS)].to_numpy()
     return np.abs(np.diff(arm, axis=0)).sum(axis=1) * FPS
 
 
-def t(df, idx):
-    return float(df["timestamp"].iloc[idx]) if idx is not None else np.nan
+def t(df: pd.DataFrame, idx) -> float:
+    """Elapsed time in seconds from the first frame."""
+    if idx is None or df.empty:
+        return np.nan
 
+    return float(
+        df["timestamp"].iloc[idx] - df["timestamp"].iloc[0]
+    )
 
 # =====================================================================
 # Akif: core features
 # =====================================================================
 def duration(df, ph):
-    return t(df, -1)
+    return float(df["timestamp"].iloc[-1] - df["timestamp"].iloc[0])
 
 
 def reach_time(df, ph):
@@ -56,9 +64,79 @@ def track_err(df, ph):
     a = df[action(ARM_JOINTS)].to_numpy()
     return float(np.abs(s - a).mean())
 
-# TODO (Akif): return_time, reach_ratio, carry_speed, path_length, max_track_err,
-#              joint angles at grasp / release
+def return_track_err(df, ph):
+    """Mean absolute command-following error during the return phase."""
+    if ph["open_idx"] is None:
+        return np.nan
 
+    start = ph["open_idx"]
+
+    s = df[state(ARM_JOINTS)].iloc[start:].to_numpy()
+    a = df[action(ARM_JOINTS)].iloc[start:].to_numpy()
+
+    return float(np.abs(s - a).mean())
+
+def return_time(df, ph):
+    if ph["open_idx"] is None:
+        return np.nan
+
+    return t(df, -1) - t(df, ph["open_idx"])
+
+
+def reach_ratio(df, ph):
+    total = duration(df, ph)
+
+    if total <= 0 or ph["grasp_idx"] is None:
+        return np.nan
+
+    return reach_time(df, ph) / total
+
+
+def carry_speed(df, ph):
+    start = ph["grasp_idx"]
+    end = ph["release_idx"]
+
+    if start is None or end is None:
+        return np.nan
+
+    speeds = arm_speed(df)
+    phase_speeds = speeds[start:end]
+
+    if len(phase_speeds) == 0:
+        return np.nan
+
+    return float(phase_speeds.mean())
+
+
+def path_length(df, ph):
+    if len(df) < 2:
+        return 0.0
+
+    arm = df[state(ARM_JOINTS)].to_numpy()
+    movement = np.abs(np.diff(arm, axis=0))
+
+    return float(movement.sum())
+
+
+def max_track_err(df, ph):
+    s = df[state(ARM_JOINTS)].to_numpy()
+    a = df[action(ARM_JOINTS)].to_numpy()
+
+    return float(np.abs(s - a).max())
+
+def shoulder_roll_movement(df, ph):
+    """Total absolute shoulder roll movement during grasp-to-release."""
+    if ph["grasp_idx"] is None or ph["release_idx"] is None:
+        return np.nan
+
+    col = state(["l_sh_r"])[0]
+
+    start = ph["grasp_idx"]
+    end = ph["release_idx"]
+
+    movement = df[col].iloc[start:end+1].diff().abs().sum()
+
+    return float(movement)
 
 # =====================================================================
 # Imran: success/fail separating features (due Nov 30)
@@ -85,10 +163,12 @@ def n_grasps(df, ph):
 # Registry: add your function here
 # =====================================================================
 FEATURE_FUNCTIONS = [
-    duration, reach_time, carry_time, mean_speed, max_speed, track_err,  # Akif
+    duration,reach_time,carry_time,return_time,reach_ratio,mean_speed,max_speed,carry_speed,path_length,track_err,max_track_err,  # Akif
     n_grasps,                                                            # Imran
-    # Elisya
-    # Wafi
+                                                                    # Elisya
+                                                                    # Wafi
+    #additional features
+    shoulder_roll_movement,return_track_err,
 ]
 
 

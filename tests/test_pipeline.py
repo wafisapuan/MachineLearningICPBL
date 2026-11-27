@@ -10,6 +10,7 @@ from src.config import LEFT_JOINTS, SEQ_LEN, action, state  # noqa: E402
 from src.features import FEATURE_FUNCTIONS, build_table  # noqa: E402
 from src.phases import detect_phases  # noqa: E402
 from src.sequences import to_fixed_length  # noqa: E402
+from src.sequences import build_sequences
 
 
 def fake_episode(n=300, grasp=(100, 200)) -> pd.DataFrame:
@@ -48,3 +49,15 @@ def test_feature_table_shape():
 
 def test_fixed_length():
     assert to_fixed_length(fake_episode(377)).shape == (SEQ_LEN, len(LEFT_JOINTS))
+
+def test_build_sequences():
+    eps = {
+        "a": fake_episode(300),
+        "b": fake_episode(420)
+    }
+
+    X, ids = build_sequences(eps)
+
+    assert X.shape == (2, SEQ_LEN, len(LEFT_JOINTS))
+    assert ids == ["a", "b"]
+    assert np.isfinite(X).all()
