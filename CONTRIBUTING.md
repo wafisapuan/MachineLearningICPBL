@@ -27,7 +27,7 @@ Then open a **pull request** on GitHub.
 |---|---|
 | Code (`src/`, `scripts/`, `tests/`, `demo.py`) | **Raw episode CSVs** (`data/raw/`, `data/holdout/`) |
 | `docs/holdout_ids.txt` (the official test-set list) | Videos |
-| `results/features.csv` and other small result tables | Large notebook outputs (clear them first) |
+| `results/features.csv` (**Akif only**, see below) and other small result tables | Large notebook outputs (clear them first) |
 | Reports (`reports/`) and figures used in the report | `.venv/`, `__pycache__/` |
 | Saved models in `models/` (needed by `demo.py`) | |
 
@@ -53,8 +53,9 @@ Then open a **pull request** on GitHub.
        ...
    ```
 2. Register it in `FEATURE_FUNCTIONS` at the bottom of the file.
-3. Run `python scripts/build_features.py` and check the new column.
-4. Commit `src/features.py` **and** the rebuilt `results/features.csv`.
+3. Run `python scripts/build_features.py` and check the new column (locally only).
+4. Commit **only `src/features.py`**. Do not commit `results/features.csv` in a feature PR: parallel PRs would always conflict on it.
+   After merging, **Akif rebuilds and commits `results/features.csv`** on `main`.
 5. Open a PR; Akif reviews.
 
 ## Commit messages

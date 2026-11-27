@@ -47,6 +47,7 @@ pip install -r requirements.txt
 
 # 4. Set aside the test set: EVERYONE runs this once on their own laptop.
 #    It moves the 8 episodes listed in docs/holdout_ids.txt into data/holdout/.
+#    Run it again whenever you copy the dataset into data/raw again.
 python scripts/make_holdout.py
 
 # 5. Explore
