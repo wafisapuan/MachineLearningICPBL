@@ -39,16 +39,43 @@ def load_folder(folder) -> tuple[dict[str, pd.DataFrame], dict[str, int | None]]
     return episodes, labels
 
 
+
 def check_episodes(episodes: dict[str, pd.DataFrame]) -> pd.DataFrame:
-    """Quick sanity report: length, duration, missing values, column count."""
+    """Validate episode structure and timestamp consistency."""
     rows = []
+
+    # Use the first episode as the reference schema
+    reference_columns = next(iter(episodes.values())).columns.tolist()
+
     for eid, df in episodes.items():
+
+        # Check column structure
+        correct_columns = df.columns.tolist() == reference_columns
+
+        # Check missing values
+        missing_values = int(df.isna().sum().sum())
+
+        # Check timestamps
+        timestamps = df["timestamp"]
+        time_increasing = bool(timestamps.is_monotonic_increasing)
+
+        # Check 30 FPS
+        time_diff = timestamps.diff().dropna()
+        correct_fps = bool(
+            len(time_diff) > 0
+            and (time_diff.sub(1 / 30).abs() < 1e-6).all()
+        )
+
         rows.append({
             "episode": eid,
             "n_frames": len(df),
-            "duration_s": df["timestamp"].iloc[-1],
-            "n_missing": int(df.isna().sum().sum()),
+            "duration_s": timestamps.iloc[-1] - timestamps.iloc[0],
+            "n_missing": missing_values,
             "n_columns": df.shape[1],
-            "time_increasing": bool(df["timestamp"].is_monotonic_increasing),
+            "same_schema": correct_columns,
+            "time_increasing": time_increasing,
+            "correct_30fps": correct_fps,
         })
+
     return pd.DataFrame(rows)
+
