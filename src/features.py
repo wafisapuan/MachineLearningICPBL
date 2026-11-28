@@ -11,7 +11,7 @@ How to add a feature:
 import numpy as np
 import pandas as pd
 
-from src.config import ARM_JOINTS, FPS, action, state
+from src.config import ARM_JOINTS, FINGER_JOINTS, FPS, action, state
 from src.phases import detect_phases
 
 
@@ -144,6 +144,35 @@ def shoulder_roll_movement(df, ph):
 def n_grasps(df, ph):
     return ph["n_grasps"]
 
+
+def grip_hold_mean(df, ph):
+    """Mean finger closure (rad) while holding the bottle (grasp -> release).
+    The fingers stop where they touch the bottle, so this tells us how/where it was gripped:
+    fingers closing further = a thinner part or a looser grip. Higher in failed episodes."""
+    if ph["grasp_idx"] is None:
+        return np.nan
+    fingers = df[state(FINGER_JOINTS)].iloc[ph["grasp_idx"]:ph["release_idx"] + 1]
+    return float(fingers.to_numpy().mean())
+
+
+def sh_r_at_grasp(df, ph):
+    """Shoulder roll (rad) at the moment the hand closes: where the arm was when it grabbed.
+    Higher in successful episodes."""
+    if ph["grasp_idx"] is None:
+        return np.nan
+    return float(df[state(["l_sh_r"])[0]].iloc[ph["grasp_idx"]])
+
+
+def carry_err_max(df, ph):
+    """Largest command-following error of the arm while carrying (sum over 7 joints, rad).
+    A spike means the arm lagged or was pushed off its commanded path while loaded.
+    Higher in successful episodes."""
+    if ph["grasp_idx"] is None:
+        return np.nan
+    a, b = ph["grasp_idx"], ph["release_idx"] + 1
+    err = np.abs(df[state(ARM_JOINTS)].iloc[a:b].to_numpy() - df[action(ARM_JOINTS)].iloc[a:b].to_numpy())
+    return float(err.sum(axis=1).max())
+
 # TODO (Imran): wr_p_at_release, wr_r_at_release
 
 
@@ -164,7 +193,7 @@ def n_grasps(df, ph):
 # =====================================================================
 FEATURE_FUNCTIONS = [
     duration,reach_time,carry_time,return_time,reach_ratio,mean_speed,max_speed,carry_speed,path_length,track_err,max_track_err,  # Akif
-    n_grasps,                                                            # Imran
+    n_grasps, grip_hold_mean, sh_r_at_grasp, carry_err_max,             # Imran
                                                                     # Elisya
                                                                     # Wafi
     #additional features
