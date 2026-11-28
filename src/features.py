@@ -185,7 +185,53 @@ def carry_err_max(df, ph):
 # =====================================================================
 # Wafi: release quality features (due Nov 30)
 # =====================================================================
-# TODO (Wafi): release_speed, still_before_release, open_speed
+RELEASE_WINDOW = 15   # frames = 0.5 s at 30 fps
+SETTLE_WINDOW = 30    # frames = 1.0 s at 30 fps
+
+
+def release_speed(df, ph):
+    """Mean arm speed within ±0.5 s of the moment the hand opens."""
+    if ph["release_idx"] is None:
+        return np.nan
+    s = arm_speed(df)
+    r = ph["release_idx"]
+    return float(s[max(r - RELEASE_WINDOW, 0): r + RELEASE_WINDOW].mean())
+
+
+def speed_after_release(df, ph):
+    """Mean arm speed in the 0.5 s after letting go (how cleanly the arm pulls away)."""
+    if ph["release_idx"] is None:
+        return np.nan
+    s = arm_speed(df)
+    r = ph["release_idx"]
+    return float(s[r: r + RELEASE_WINDOW].mean())
+
+
+def shoulder_settle_last1s(df, ph):
+    """Change in shoulder pitch during the last 1 s before release.
+    Videos: failures tip on landing; fails tend to still be moving here."""
+    if ph["release_idx"] is None:
+        return np.nan
+    x = df["state.l_sh_p"].to_numpy()
+    r = ph["release_idx"]
+    return float(x[r] - x[max(r - SETTLE_WINDOW, ph["grasp_idx"])])
+
+
+def wrist_yaw_change_last1s(df, ph):
+    """Change in wrist yaw during the last 1 s before release (hand turning while placing)."""
+    if ph["release_idx"] is None:
+        return np.nan
+    x = df["state.l_wr_y"].to_numpy()
+    r = ph["release_idx"]
+    return float(x[r] - x[max(r - SETTLE_WINDOW, ph["grasp_idx"])])
+
+
+def thumb_carry_mean(df, ph):
+    """Mean thumb pitch while carrying. Higher = thumb more closed (videos: 'pinching' grip in fails)."""
+    if ph["grasp_idx"] is None:
+        return np.nan
+    x = df["state.l_hand_thumb_p"].to_numpy()
+    return float(x[ph["grasp_idx"]: ph["release_idx"] + 1].mean())
 
 
 # =====================================================================
