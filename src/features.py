@@ -198,15 +198,6 @@ def release_speed(df, ph):
     return float(s[max(r - RELEASE_WINDOW, 0): r + RELEASE_WINDOW].mean())
 
 
-def speed_after_release(df, ph):
-    """Mean arm speed in the 0.5 s after letting go (how cleanly the arm pulls away)."""
-    if ph["release_idx"] is None:
-        return np.nan
-    s = arm_speed(df)
-    r = ph["release_idx"]
-    return float(s[r: r + RELEASE_WINDOW].mean())
-
-
 def shoulder_settle_last1s(df, ph):
     """Change in shoulder pitch during the last 1 s before release.
     Videos: failures tip on landing; fails tend to still be moving here."""
@@ -241,9 +232,11 @@ FEATURE_FUNCTIONS = [
     duration,reach_time,carry_time,return_time,reach_ratio,mean_speed,max_speed,carry_speed,path_length,track_err,max_track_err,  # Akif
     n_grasps, grip_hold_mean, sh_r_at_grasp, carry_err_max,             # Imran
                                                                     # Elisya
-                                                                    # Wafi
+    release_speed,                                                          # Wafi
+    shoulder_settle_last1s, wrist_yaw_change_last1s, thumb_carry_mean,      #Wafi
     #additional features
     shoulder_roll_movement,return_track_err,
+    
 ]
 
 
